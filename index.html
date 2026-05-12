@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Daily Grind"/>
+<meta name="theme-color" content="#0a0a0a"/>
+<meta http-equiv="refresh" content="30">
+<link rel="manifest" href="manifest.json"/>
+<title>Daily Grind OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@400;600;700;900&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --bg2: #0d0d0d;
+    --bg3: #111;
+    --border: #1e1e1e;
+    --border2: #2a2a2a;
+    --text: #e0e0e0;
+    --muted: #555;
+    --green: #39ff14;
+    --purple: #a78bfa;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Barlow', sans-serif;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100%;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body { padding-bottom: calc(70px + var(--safe-bottom)); }
+
+  /* Scanlines */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,.12) 2px, rgba(0,0,0,.12) 4px);
+    pointer-events: none; z-index: 9999;
+  }
+
+  /* ─── LAYOUT ─────────────────────────── */
+  .app { max-width: 600px; margin: 0 auto; padding: 0 14px; }
+
+  /* ─── HEADER ─────────────────────────── */
+  .header {
+    padding: 20px 0 0;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 12px;
+  }
+  .header-left {}
+  .header-label { font-size: 9px; letter-spacing: 4px; color: var(--green); margin-bottom: 4px; }
+  .header-title {
+    font-family: var(--sans); font-weight: 900; font-size: clamp(22px, 6vw, 30px);
+    line-height: 1; letter-spacing: -1px; color: #fff;
+  }
+  .header-right { text-align: right; flex-shrink: 0; }
+  .clock {
+    font-family: var(--sans); font-weight: 700;
+    font-size: clamp(22px, 6vw, 30px);
+    color: var(--green); letter-spacing: 1px;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 16px #39ff1460;
+  }
+  .clock-date { font-size: 9px; color: var(--muted); letter-spacing: 2px; margin-top: 2px; }
+
+  /* ─── PROGRESS ───────────────────────── */
+  .progress-wrap { margin: 16px 0 0; }
+  .progress-meta {
+    display: flex; justify-content: space-between;
+    font-size: 9px; letter-spacing: 2px; color: var(--muted); margin-bottom: 6px;
+  }
+  .progress-meta span:last-child { color: var(--green); }
+  .progress-bar { background: #1a1a1a; height: 5px; border-radius: 3px; border: 1px solid var(--border); }
+  .progress-fill {
+    height: 100%; border-radius: 3px; background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    transition: width .5s ease;
+  }
+
+  /* ─── MINI STATS ─────────────────────── */
+  .stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin: 12px 0 0; }
+  .stat-card {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 6px; text-align: center;
+  }
+  .stat-label { font-size: 8px; letter-spacing: 2px; color: var(--muted); }
+  .stat-val { font-family: var(--sans); font-weight: 700; font-size: 18px; margin-top: 3px; }
+
+  /* ─── TABS ───────────────────────────── */
+  .tabs-wrap {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(10,10,10,.95);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    padding: 8px 16px calc(8px + var(--safe-bottom));
+    z-index: 100;
+  }
+  .tabs { display: flex; gap: 6px; max-width: 600px; margin: 0 auto; }
+  .tab-btn {
+    flex: 1; padding: 9px 0;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--muted); font-family: var(--mono); font-size: 9px;
+    letter-spacing: 3px; cursor: pointer; border-radius: 5px;
+    transition: all .2s; font-weight: bold;
+  }
+  .tab-btn.active {
+    background: var(--green); color: #000;
+    border-color: var(--green); box-shadow: 0 0 12px #39ff1440;
+  }
+
+  /* ─── SECTION HEADER ─────────────────── */
+  .section-hdr {
+    display: flex; justify-content: space-between; align-items: center;
+    margin: 18px 0 12px;
+    font-size: 9px; letter-spacing: 3px; color: var(--muted);
+  }
+  .btn-sm {
+    background: none; border: 1px solid var(--border2);
+    color: var(--muted); font-family: var(--mono);
+    font-size: 9px; letter-spacing: 2px;
+    padding: 5px 10px; cursor: pointer; border-radius: 4px;
+    transition: all .2s;
+  }
+  .btn-sm:hover { border-color: var(--green); color: var(--green); }
+  .btn-primary {
+    background: var(--green); color: #000; border: none;
+    font-family: var(--mono); font-size: 9px; letter-spacing: 2px;
+    padding: 6px 14px; cursor: pointer; border-radius: 4px;
+    font-weight: bold;
+  }
+
+  /* ─── BLOCKS ─────────────────────────── */
+  .blocks { display: flex; flex-direction: column; gap: 6px; }
+  .block {
+    position: relative; overflow: hidden;
+    border-radius: 7px; padding: 12px 13px;
+    cursor: pointer; transition: all .2s;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    -webkit-user-select: none; user-select: none;
+  }
+  .block.active { border-color: var(--green); background: #0d1a0d; box-shadow: 0 0 14px #39ff1418; }
+  .block.active-prayer { border-color: var(--purple); background: #0d0d1a; box-shadow: 0 0 14px #a78bfa18; }
+  .block.done { opacity: .5; }
+  .block.past:not(.done) { opacity: .35; }
+  .block-progress-bar {
+    position: absolute; bottom: 0; left: 0; height: 2px;
+    transition: width 10s linear;
+    box-shadow: 0 0 6px currentColor;
+  }
+  .block-inner { display: flex; align-items: center; gap: 10px; }
+  .check {
+    width: 20px; height: 20px; border-radius: 4px;
+    border: 1.5px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all .15s; font-size: 11px; font-weight: bold;
+  }
+  .check.checked { background: var(--green); border-color: var(--green); color: #000; }
+  .block-icon { font-size: 20px; flex-shrink: 0; }
+  .block-content { flex: 1; min-width: 0; }
+  .block-label {
+    font-family: var(--sans); font-weight: 600;
+    font-size: clamp(12px, 3.5vw, 14px);
+    color: var(--text); white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .block.done .block-label { text-decoration: line-through; color: var(--muted); }
+  .block-time { font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: 1px; }
+  .now-badge {
+    background: var(--green); color: #000;
+    font-size: 8px; letter-spacing: 2px;
+    padding: 3px 7px; border-radius: 3px;
+    font-weight: bold; flex-shrink: 0;
+  }
+  .now-badge.prayer { background: var(--purple); }
+
+  /* ─── HISTORY ────────────────────────── */
+  .bars { display: flex; gap: 6px; align-items: flex-end; margin: 0 0 20px; }
+  .bar-col { flex: 1; text-align: center; }
+  .bar-pct { font-size: 9px; color: var(--muted); margin-bottom: 4px; letter-spacing: 1px; }
+  .bar-pct.today-col { color: var(--green); }
+  .bar-track {
+    background: var(--bg3); border-radius: 3px; height: 72px;
+    position: relative; overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .bar-fill {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: #1e2e1e; transition: height .5s ease;
+  }
+  .bar-fill.today-col { background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .bar-day { font-size: 8px; color: var(--muted); margin-top: 4px; letter-spacing: 1px; }
+  .bar-day.today-col { color: var(--green); }
+
+  .hist-row {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 5px; padding: 10px 13px; margin-bottom: 6px;
+  }
+  .hist-day { font-family: var(--sans); font-weight: 600; font-size: 13px; }
+  .hist-date { font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: 1px; }
+  .hist-pct { font-family: var(--sans); font-weight: 700; font-size: 18px; }
+  .hist-sub { font-size: 9px; color: var(--muted); text-align: right; letter-spacing: 1px; }
+
+  /* ─── EDIT ───────────────────────────── */
+  .edit-row {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 12px; margin-bottom: 6px;
+  }
+  .edit-info { flex: 1; min-width: 0; }
+  .edit-label {
+    font-family: var(--sans); font-weight: 600;
+    font-size: 13px; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .edit-time { font-size: 10px; color: var(--muted); margin-top: 2px; letter-spacing: 1px; }
+  .edit-btns { display: flex; gap: 5px; flex-shrink: 0; }
+
+  .edit-form {
+    background: var(--bg3); border: 1px solid var(--green);
+    border-radius: 7px; padding: 14px;
+    margin-bottom: 6px;
+    box-shadow: 0 0 16px #39ff1418;
+  }
+  .form-title { font-size: 9px; color: var(--green); letter-spacing: 3px; margin-bottom: 13px; }
+  .form-field { margin-bottom: 10px; }
+  .form-lbl { font-size: 9px; color: var(--muted); letter-spacing: 2px; margin-bottom: 5px; }
+  .form-input {
+    width: 100%; background: var(--bg);
+    border: 1px solid var(--border2); color: var(--text);
+    padding: 9px 11px; font-size: 14px;
+    font-family: var(--mono); border-radius: 4px;
+    outline: none; transition: border-color .2s;
+    -webkit-appearance: none; appearance: none;
+  }
+  .form-input:focus { border-color: var(--green); }
+  .cat-btns { display: flex; gap: 6px; }
+  .cat-btn {
+    flex: 1; padding: 7px 0;
+    border: 1px solid var(--border2); background: transparent;
+    color: var(--muted); font-family: var(--mono);
+    font-size: 9px; letter-spacing: 2px;
+    cursor: pointer; border-radius: 4px; transition: all .15s;
+  }
+  .cat-btn.active-coding { border-color: var(--green); background: #0d1a0d; color: var(--green); }
+  .cat-btn.active-prayer { border-color: var(--purple); background: #0d0d1a; color: var(--purple); }
+  .cat-btn.active-life { border-color: #6b7280; background: #151515; color: #9ca3af; }
+  .form-actions { display: flex; gap: 6px; margin-top: 12px; }
+  .btn-save {
+    flex: 1; background: var(--green); color: #000; border: none;
+    padding: 10px 0; font-family: var(--mono); font-size: 10px;
+    letter-spacing: 2px; cursor: pointer; border-radius: 4px; font-weight: bold;
+  }
+  .btn-cancel {
+    flex: 1; background: transparent; color: var(--muted);
+    border: 1px solid var(--border2); padding: 10px 0;
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 2px; cursor: pointer; border-radius: 4px;
+  }
+  .btn-danger {
+    width: 100%; margin-top: 14px;
+    background: none; border: 1px solid #3a1a1a;
+    color: var(--red); padding: 11px;
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 2px; cursor: pointer; border-radius: 5px;
+  }
+
+  /* ─── TOAST ──────────────────────────── */
+  #toast {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%) translateY(-10px);
+    background: var(--green); color: #000;
+    padding: 10px 20px; border-radius: 5px;
+    font-size: 12px; font-weight: bold; letter-spacing: 1px;
+    z-index: 10000; pointer-events: none;
+    opacity: 0; transition: all .25s;
+    box-shadow: 0 0 20px #39ff1460;
+    white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ─── FOOTER ─────────────────────────── */
+  .footer { text-align: center; font-size: 9px; color: #222; letter-spacing: 2px; padding: 16px 0 4px; }
+
+  /* ─── SCROLLBAR ──────────────────────── */
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* ─── TIME INPUT FIX ─────────────────── */
+  input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: .5; }
+
+  /* ─── ONBOARDING ─────────────────────── */
+  #onboarding {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 30px 24px; z-index: 500; text-align: center;
+  }
+  #onboarding.hidden { display: none; }
+  .ob-glyph { font-size: 52px; margin-bottom: 20px; }
+  .ob-title {
+    font-family: var(--sans); font-weight: 900;
+    font-size: clamp(26px, 7vw, 36px);
+    color: #fff; letter-spacing: -1px; line-height: 1.1; margin-bottom: 10px;
+  }
+  .ob-sub { font-size: 11px; color: var(--muted); letter-spacing: 2px; line-height: 1.7; margin-bottom: 32px; }
+  .ob-sub span { color: var(--green); }
+  .ob-btn {
+    background: var(--green); color: #000; border: none;
+    font-family: var(--mono); font-size: 11px; font-weight: bold;
+    letter-spacing: 3px; padding: 14px 32px;
+    border-radius: 5px; cursor: pointer;
+    box-shadow: 0 0 20px #39ff1450;
+    transition: transform .15s;
+  }
+  .ob-btn:active { transform: scale(.97); }
+  .ob-steps {
+    display: flex; flex-direction: column; gap: 10px;
+    width: 100%; max-width: 300px; margin-bottom: 32px; text-align: left;
+  }
+  .ob-step {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 14px;
+  }
+  .ob-step-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--green); color: #000;
+    font-size: 10px; font-weight: bold;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .ob-step-text { font-size: 11px; color: var(--muted); letter-spacing: 1px; line-height: 1.4; }
+
+  /* ─── EMPTY STATE ────────────────────── */
+  .empty-state {
+    text-align: center; padding: 40px 20px;
+    border: 1px dashed var(--border2); border-radius: 8px; margin-top: 8px;
+  }
+  .empty-icon { font-size: 36px; margin-bottom: 12px; }
+  .empty-title { font-family: var(--sans); font-weight: 700; font-size: 15px; color: #fff; margin-bottom: 6px; }
+  .empty-sub { font-size: 10px; color: var(--muted); letter-spacing: 2px; margin-bottom: 18px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div id="toast"></div>
+
+<!-- ONBOARDING -->
+<div id="onboarding" class="hidden">
+  <div class="ob-glyph">⚡</div>
+  <div class="ob-title">DAILY<br>GRIND OS</div>
+  <div class="ob-sub">Your personal routine tracker.<br>Let's build your <span>daily schedule</span>.</div>
+  <div class="ob-steps">
+    <div class="ob-step">
+      <div class="ob-step-num">1</div>
+      <div class="ob-step-text">Go to the <strong style="color:#e0e0e0">EDIT</strong> tab</div>
+    </div>
+    <div class="ob-step">
+      <div class="ob-step-num">2</div>
+      <div class="ob-step-text">Tap <strong style="color:#e0e0e0">+ ADD BLOCK</strong> to create your time blocks</div>
+    </div>
+    <div class="ob-step">
+      <div class="ob-step-num">3</div>
+      <div class="ob-step-text">Set icon, label, time & category for each block</div>
+    </div>
+  </div>
+  <button class="ob-btn" onclick="dismissOnboarding()">GET STARTED →</button>
+</div>
+
+<div class="app">
+  <div class="header">
+    <div class="header-left">
+      <div class="header-label">DAILY GRIND OS</div>
+      <div class="header-title">ROUTINE<br>TRACKER</div>
+    </div>
+    <div class="header-right">
+      <div class="clock" id="clock">--:--</div>
+      <div class="clock-date" id="clock-date">---</div>
+    </div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-meta">
+      <span>TODAY'S PROGRESS</span>
+      <span id="prog-label">0/0 DONE</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">CODING</div>
+      <div class="stat-val" id="stat-coding" style="color:var(--green)">0/0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">PRAYER</div>
+      <div class="stat-val" id="stat-prayer" style="color:var(--purple)">0/0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">STREAK</div>
+      <div class="stat-val" id="stat-streak" style="color:var(--amber)">0d</div>
+    </div>
+  </div>
+
+  <!-- TODAY -->
+  <div id="tab-today">
+    <div class="section-hdr">
+      <span>SCHEDULE</span>
+      <button class="btn-sm" onclick="resetToday()">RESET DAY</button>
+    </div>
+    <div class="blocks" id="blocks-list"></div>
+    <div id="empty-today" style="display:none" class="empty-state">
+      <div class="empty-icon">📋</div>
+      <div class="empty-title">No routine yet</div>
+      <div class="empty-sub">GO TO THE EDIT TAB<br>TO BUILD YOUR SCHEDULE</div>
+      <button class="btn-primary" onclick="switchTab('edit')">BUILD MY ROUTINE →</button>
+    </div>
+    <div class="footer">DAILY GRIND OS v1.0 • TAP BLOCKS TO MARK DONE</div>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="tab-history" style="display:none">
+    <div class="section-hdr"><span>LAST 7 DAYS</span></div>
+    <div class="bars" id="bars"></div>
+    <div id="hist-list"></div>
+    <div class="footer">DAILY GRIND OS v1.0</div>
+  </div>
+
+  <!-- EDIT -->
+  <div id="tab-edit" style="display:none">
+    <div class="section-hdr">
+      <span>EDIT ROUTINE</span>
+      <button class="btn-primary" onclick="addBlock()">+ ADD BLOCK</button>
+    </div>
+    <div id="edit-list"></div>
+    <button class="btn-danger" onclick="resetRoutine()">CLEAR ALL BLOCKS</button>
+    <div class="footer">DAILY GRIND OS v1.0</div>
+  </div>
+</div>
+
+<!-- BOTTOM TABS -->
+<div class="tabs-wrap">
+  <div class="tabs">
+    <button class="tab-btn active" id="tbtn-today" onclick="switchTab('today')">TODAY</button>
+    <button class="tab-btn" id="tbtn-history" onclick="switchTab('history')">HISTORY</button>
+    <button class="tab-btn" id="tbtn-edit" onclick="switchTab('edit')">EDIT</button>
+  </div>
+</div>
+
+<script>
+const DEFAULT_ROUTINE = [
+];
+
+// ── State ──────────────────────────────────────────────
+let routine   = load("routine_blocks", DEFAULT_ROUTINE);
+let completed = load("done_" + todayKey(), {});
+let notified  = load("notified_today", {});
+let history   = load("routine_history", {});
+let editingId = null;
+let editForm  = {};
+let currentTab = "today";
+let notifPerm = false;
+const isFirstTime = !localStorage.getItem("routine_blocks");
+
+// ── Helpers ────────────────────────────────────────────
+function toMins(t){ const [h,m]=t.split(":").map(Number); return h*60+m; }
+function todayKey(){ return new Date().toISOString().slice(0,10); }
+function save(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function load(k,def){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def; }catch(e){ return def; } }
+
+function nowMins(){
+  const n=new Date(); return n.getHours()*60+n.getMinutes();
+}
+function activeIdx(){
+  const m=nowMins();
+  for(let i=0;i<routine.length;i++){
+    const s=toMins(routine[i].time), e=toMins(routine[i].end)||(toMins(routine[i].end)===0?1440:toMins(routine[i].end));
+    const end=e===0?1440:e;
+    if(m>=s && m<end) return i;
+  }
+  return -1;
+}
+function blockProgress(b){
+  const m=nowMins(), s=toMins(b.time);
+  let e=toMins(b.end); if(e===0) e=1440;
+  if(m<s) return 0; if(m>=e) return 100;
+  return Math.round((m-s)/(e-s)*100);
+}
+function catColor(cat){
+  if(cat==="coding") return "var(--green)";
+  if(cat==="prayer") return "var(--purple)";
+  return "#6b7280";
+}
+function streakCount(){
+  let s=0;
+  for(let i=0;i<30;i++){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const k=d.toISOString().slice(0,10);
+    const h=history[k]||{};
+    const done=Object.values(h).filter(Boolean).length;
+    if(done >= Math.floor(routine.length*0.7)) s++;
+    else if(i>0) break;
+  }
+  return s;
+}
+
+// ── Onboarding ─────────────────────────────────────────
+function showOnboarding(){
+  document.getElementById("onboarding").classList.remove("hidden");
+}
+function dismissOnboarding(){
+  document.getElementById("onboarding").classList.add("hidden");
+  switchTab("edit");
+}
+
+// ── Empty state toggle ─────────────────────────────────
+function toggleEmptyState(){
+  const isEmpty = routine.length === 0;
+  document.getElementById("empty-today").style.display = isEmpty ? "block" : "none";
+  document.getElementById("blocks-list").style.display = isEmpty ? "none" : "flex";
+}
+
+
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove("show"),3500);
+}
+
+// ── Clock ──────────────────────────────────────────────
+function updateClock(){
+  const n=new Date();
+  document.getElementById("clock").textContent=
+    n.toLocaleTimeString("en",{hour:"2-digit",minute:"2-digit"});
+  document.getElementById("clock-date").textContent=
+    n.toLocaleDateString("en",{weekday:"long",month:"short",day:"numeric"}).toUpperCase();
+}
+
+// ── Notifications ──────────────────────────────────────
+function requestNotif(){
+  if("Notification" in window && Notification.permission==="default"){
+    Notification.requestPermission().then(p=>{ notifPerm=p==="granted"; });
+  } else { notifPerm=Notification.permission==="granted"; }
+}
+function checkNotif(){
+  const ai=activeIdx(); if(ai===-1) return;
+  const b=routine[ai];
+  const key=todayKey()+"_"+b.id;
+  if(!notified[key]){
+    if(notifPerm){
+      new Notification("⏰ Time for: "+b.label,{body:b.time+" – "+b.end});
+    }
+    showToast(b.icon+" NOW: "+b.label);
+    notified[key]=true; save("notified_today",notified);
+  }
+}
+
+// ── Header stats ───────────────────────────────────────
+function updateStats(){
+  const total=routine.length;
+  const done=Object.values(completed).filter(Boolean).length;
+  document.getElementById("prog-label").textContent=done+"/"+total+" DONE";
+  document.getElementById("prog-fill").style.width=(total?Math.round(done/total*100):0)+"%";
+
+  const cod=routine.filter(b=>b.cat==="coding");
+  const pra=routine.filter(b=>b.cat==="prayer");
+  document.getElementById("stat-coding").textContent=
+    cod.filter(b=>completed[b.id]).length+"/"+cod.length;
+  document.getElementById("stat-prayer").textContent=
+    pra.filter(b=>completed[b.id]).length+"/"+pra.length;
+  document.getElementById("stat-streak").textContent=streakCount()+"d";
+}
+
+// ── Render Today ───────────────────────────────────────
+function renderToday(){
+  toggleEmptyState();
+  if(routine.length === 0) return;
+  const ai=activeIdx();
+  const list=document.getElementById("blocks-list");
+  list.innerHTML="";
+  routine.forEach((b,i)=>{
+    const isActive=i===ai;
+    const isDone=!!completed[b.id];
+    const isPast=i<ai;
+    const prog=isActive?blockProgress(b):0;
+    const col=catColor(b.cat);
+    const isPrayer=b.cat==="prayer";
+
+    const div=document.createElement("div");
+    div.className="block"+(isActive?(isPrayer?" active-prayer":" active"):"")+(isDone?" done":"")+(isPast&&!isDone?" past":"");
+    div.onclick=()=>toggleDone(b.id);
+
+    div.innerHTML=`
+      ${isActive?`<div class="block-progress-bar" style="width:${prog}%;background:${col};color:${col}"></div>`:""}
+      <div class="block-inner">
+        <div class="check ${isDone?"checked":""}">${isDone?"✓":""}</div>
+        <span class="block-icon">${b.icon}</span>
+        <div class="block-content">
+          <div class="block-label">${b.label}</div>
+          <div class="block-time">${b.time} – ${b.end}${isActive?` · ${prog}%`:""}</div>
+        </div>
+        ${isActive?`<div class="now-badge ${isPrayer?"prayer":""}">NOW</div>`:""}
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+// ── Render History ─────────────────────────────────────
+function renderHistory(){
+  const days=Array.from({length:7},(_,i)=>{
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const k=d.toISOString().slice(0,10);
+    const h=history[k]||{};
+    return {
+      key:k,
+      label:i===0?"Today":d.toLocaleDateString("en",{weekday:"short"}),
+      done:Object.values(h).filter(Boolean).length,
+      total:routine.length
+    };
+  }).reverse();
+
+  // bars
+  const barsEl=document.getElementById("bars");
+  barsEl.innerHTML="";
+  days.forEach(d=>{
+    const pct=d.total?Math.round(d.done/d.total*100):0;
+    const isT=d.label==="Today";
+    barsEl.innerHTML+=`
+      <div class="bar-col">
+        <div class="bar-pct ${isT?"today-col":""}">${pct}%</div>
+        <div class="bar-track"><div class="bar-fill ${isT?"today-col":""}" style="height:${pct}%"></div></div>
+        <div class="bar-day ${isT?"today-col":""}">${d.label.substring(0,3).toUpperCase()}</div>
+      </div>`;
+  });
+
+  // list
+  const histEl=document.getElementById("hist-list");
+  histEl.innerHTML="";
+  [...days].reverse().forEach(d=>{
+    const pct=d.total?Math.round(d.done/d.total*100):0;
+    const col=pct>=70?"var(--green)":pct>=40?"var(--amber)":"var(--red)";
+    const isT=d.label==="Today";
+    histEl.innerHTML+=`
+      <div class="hist-row" style="${isT?"border-color:#39ff1430":""}">
+        <div>
+          <div class="hist-day" style="${isT?"color:var(--green)":""}">${d.label}</div>
+          <div class="hist-date">${d.key}</div>
+        </div>
+        <div>
+          <div class="hist-pct" style="color:${col}">${pct}%</div>
+          <div class="hist-sub">${d.done}/${d.total} DONE</div>
+        </div>
+      </div>`;
+  });
+}
+
+// ── Render Edit ────────────────────────────────────────
+function renderEdit(){
+  const el=document.getElementById("edit-list");
+  el.innerHTML="";
+  routine.forEach(b=>{
+    if(editingId===b.id){
+      el.appendChild(buildEditForm(b));
+    } else {
+      el.innerHTML+=`
+        <div class="edit-row">
+          <span style="font-size:18px;flex-shrink:0">${b.icon}</span>
+          <div class="edit-info">
+            <div class="edit-label">${b.label}</div>
+            <div class="edit-time">${b.time} – ${b.end}</div>
+          </div>
+          <div class="edit-btns">
+            <button class="btn-sm" onclick="startEdit(${b.id})">EDIT</button>
+            <button class="btn-sm" style="border-color:#3a1a1a;color:var(--red)" onclick="deleteBlock(${b.id})">✕</button>
+          </div>
+        </div>`;
+    }
+  });
+}
+
+function buildEditForm(b){
+  const div=document.createElement("div");
+  div.className="edit-form";
+  div.innerHTML=`
+    <div class="form-title">EDITING BLOCK</div>
+    <div class="form-field">
+      <div class="form-lbl">ICON (EMOJI)</div>
+      <input class="form-input" id="ef-icon" value="${b.icon}" maxlength="4"/>
+    </div>
+    <div class="form-field">
+      <div class="form-lbl">LABEL</div>
+      <input class="form-input" id="ef-label" value="${b.label}"/>
+    </div>
+    <div class="form-field" style="display:flex;gap:10px">
+      <div style="flex:1">
+        <div class="form-lbl">START</div>
+        <input class="form-input" id="ef-time" type="time" value="${b.time}"/>
+      </div>
+      <div style="flex:1">
+        <div class="form-lbl">END</div>
+        <input class="form-input" id="ef-end" type="time" value="${b.end==="00:00"?"00:00":b.end}"/>
+      </div>
+    </div>
+    <div class="form-field">
+      <div class="form-lbl">CATEGORY</div>
+      <div class="cat-btns">
+        <button class="cat-btn ${b.cat==="coding"?"active-coding":""}" onclick="setEditCat('coding',this)">CODING</button>
+        <button class="cat-btn ${b.cat==="prayer"?"active-prayer":""}" onclick="setEditCat('prayer',this)">PRAYER</button>
+        <button class="cat-btn ${b.cat==="life"?"active-life":""}" onclick="setEditCat('life',this)">LIFE</button>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-save" onclick="saveEdit()">SAVE</button>
+      <button class="btn-cancel" onclick="cancelEdit()">CANCEL</button>
+    </div>`;
+  editForm.cat = b.cat;
+  return div;
+}
+
+function setEditCat(cat, btn){
+  editForm.cat=cat;
+  document.querySelectorAll(".cat-btn").forEach(b=>{
+    b.className="cat-btn";
+  });
+  btn.className="cat-btn active-"+cat;
+}
+
+function startEdit(id){
+  editingId=id;
+  editForm={ ...routine.find(b=>b.id===id) };
+  renderEdit();
+}
+function cancelEdit(){ editingId=null; renderEdit(); }
+function saveEdit(){
+  const icon=document.getElementById("ef-icon").value.trim()||"📌";
+  const label=document.getElementById("ef-label").value.trim()||"Block";
+  const time=document.getElementById("ef-time").value||"09:00";
+  const end=document.getElementById("ef-end").value||"10:00";
+  routine=routine.map(b=>b.id===editingId?{...b,icon,label,time,end,cat:editForm.cat||b.cat}:b);
+  routine.sort((a,b)=>toMins(a.time)-toMins(b.time));
+  editingId=null;
+  save("routine_blocks",routine);
+  renderEdit(); updateStats(); showToast("✅ Block saved!");
+}
+function deleteBlock(id){
+  if(!confirm("Delete this block?")) return;
+  routine=routine.filter(b=>b.id!==id);
+  save("routine_blocks",routine);
+  renderEdit(); updateStats(); showToast("🗑️ Block removed");
+}
+function addBlock(){
+  const nb={id:Date.now(),time:"08:00",end:"09:00",label:"New block",icon:"📌",cat:"life"};
+  routine.push(nb);
+  routine.sort((a,b)=>toMins(a.time)-toMins(b.time));
+  editingId=nb.id; editForm={...nb};
+  save("routine_blocks",routine);
+  renderEdit();
+  document.getElementById("edit-list").scrollIntoView({behavior:"smooth"});
+}
+function resetRoutine(){
+  if(!confirm("Clear all blocks? This cannot be undone.")) return;
+  routine=[];
+  save("routine_blocks",routine);
+  editingId=null; renderEdit(); updateStats(); renderToday(); showToast("🗑️ All blocks cleared!");
+}
+
+// ── Toggles ────────────────────────────────────────────
+function toggleDone(id){
+  completed[id]=!completed[id];
+  save("done_"+todayKey(), completed);
+  const h={...history,[todayKey()]:completed};
+  history=h; save("routine_history",history);
+  renderToday(); updateStats();
+}
+function resetToday(){
+  if(!confirm("Reset today's progress?")) return;
+  completed={};
+  save("done_"+todayKey(), completed);
+  renderToday(); updateStats(); showToast("🔄 Today reset!");
+}
+
+// ── Tabs ───────────────────────────────────────────────
+function switchTab(tab){
+  currentTab=tab;
+  ["today","history","edit"].forEach(t=>{
+    document.getElementById("tab-"+t).style.display=t===tab?"block":"none";
+    document.getElementById("tbtn-"+t).classList.toggle("active",t===tab);
+  });
+  if(tab==="history") renderHistory();
+  if(tab==="edit") renderEdit();
+  if(tab==="today") renderToday();
+}
+
+// ── Tick ───────────────────────────────────────────────
+function tick(){
+  updateClock();
+  checkNotif();
+  updateStats();
+  if(currentTab==="today") renderToday();
+}
+
+// ── Init ───────────────────────────────────────────────
+requestNotif();
+updateClock();
+updateStats();
+renderToday();
+tick();
+setInterval(tick, 15000);
+if(isFirstTime) showOnboarding();
+
+// ── Service Worker ─────────────────────────────────────
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js")
+    .then(()=> console.log("SW registered"))
+    .catch(e=> console.log("SW error", e));
+}
+</script>
+</body>
+</html>
