@@ -26,3 +26,6 @@ A lightweight PWA to track your daily routine — works offline, installs on any
 
 ## Built with
 HTML · CSS · Vanilla JS · Service Worker
+
+## Live 
+https://dailygrind-app.netlify.app/
