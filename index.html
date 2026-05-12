@@ -802,8 +802,32 @@ function switchTab(tab){
   if(tab==="today") renderToday();
 }
 
+// ── Midnight reset ─────────────────────────────────────
+function checkMidnightReset(){
+  const today = todayKey();
+  if(today !== lastKnownDate){
+    // Save yesterday's completed state into history before resetting
+    const h = {...history, [lastKnownDate]: completed};
+    history = h; save("routine_history", history);
+
+    // Reset for new day
+    completed = {};
+    save("done_" + today, completed);
+
+    // Reset notifications for new day
+    notified = {};
+    save("notified_today", notified);
+
+    lastKnownDate = today;
+    showToast("🌅 New day started! Routine reset.");
+    renderToday(); updateStats();
+    if(currentTab==="history") renderHistory();
+  }
+}
+
 // ── Tick ───────────────────────────────────────────────
 function tick(){
+  checkMidnightReset();
   updateClock();
   checkNotif();
   updateStats();
@@ -811,13 +835,19 @@ function tick(){
 }
 
 // ── Init ───────────────────────────────────────────────
+let lastKnownDate = todayKey();
 requestNotif();
 updateClock();
 updateStats();
 renderToday();
 tick();
-setInterval(tick, 15000);
+setInterval(tick, 1000);
 if(isFirstTime) showOnboarding();
+
+// Snap immediately when app is reopened
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState === "visible") tick();
+});
 
 // ── Service Worker ─────────────────────────────────────
 if("serviceWorker" in navigator){
